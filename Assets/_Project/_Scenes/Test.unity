@@ -270,7 +270,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   playerTag: Player
-  offset: {x: 0, y: 7, z: -8}
+  offset: {x: 0, y: 5, z: -7}
   followSmoothTime: 0.18
   rotationSmoothSpeed: 8
 --- !u!1 &410087039
@@ -627,6 +627,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3812243515435553885, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3812243515435553885, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3812243515435553885, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.04
+      objectReference: {fileID: 0}
     - target: {fileID: 4404446768203057296, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
       propertyPath: m_Name
       value: Player
@@ -637,7 +649,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7527838227908976006, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 7527838227908976006, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
       propertyPath: m_LocalPosition.z

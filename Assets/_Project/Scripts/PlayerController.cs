@@ -19,6 +19,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float centerDuration = 0.45f;
     [SerializeField] private float centerAssistSpeed = 4f;
     [SerializeField] private LeanTweenType centerEase = LeanTweenType.easeOutQuad;
+    [SerializeField] private GameObject abductionBeam;
+    [SerializeField] private Material abductionBeamMaterial;
 
     private PlayerMovement playerMovement;
     private AnimalController targetAnimal;
@@ -29,6 +31,10 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         playerMovement = GetComponent<PlayerMovement>();
+        FindAbductionBeamIfNeeded();
+        LoadAbductionBeamMaterialIfNeeded();
+        ApplyAbductionBeamMaterial();
+        SetAbductionBeamActive(false);
     }
 
     private void Update()
@@ -55,6 +61,7 @@ public class PlayerController : MonoBehaviour
 
                 if (IsTargetValid() && GetHorizontalDistance(targetAnimal.transform.position) <= centeredDistance)
                 {
+                    SetAbductionBeamActive(true);
                     state = AbductionState.ReadyToAbduct;
                 }
                 break;
@@ -65,6 +72,8 @@ public class PlayerController : MonoBehaviour
                     ResetTarget();
                     return;
                 }
+
+                SetAbductionBeamActive(true);
 
                 if (playerMovement != null && playerMovement.HasMoveInput)
                 {
@@ -162,6 +171,7 @@ public class PlayerController : MonoBehaviour
 
         if (GetHorizontalDistance(targetAnimal.transform.position) <= centeredDistance)
         {
+            SetAbductionBeamActive(true);
             state = AbductionState.ReadyToAbduct;
             return;
         }
@@ -170,6 +180,7 @@ public class PlayerController : MonoBehaviour
         isCenterTweenActive = true;
         centerAssistStrength = 0f;
         UpdateCenterAssist();
+        SetAbductionBeamActive(true);
 
         LeanTween.cancel(gameObject);
         LeanTween.value(gameObject, 0f, 1f, centerDuration)
@@ -183,6 +194,7 @@ public class PlayerController : MonoBehaviour
         isCenterTweenActive = false;
         centerAssistStrength = 1f;
         UpdateCenterAssist();
+        SetAbductionBeamActive(IsTargetValid());
 
         state = IsTargetValid() ? AbductionState.ReadyToAbduct : AbductionState.Idle;
     }
@@ -191,6 +203,7 @@ public class PlayerController : MonoBehaviour
     {
         CancelCentering();
         state = AbductionState.Abducting;
+        SetAbductionBeamActive(true);
 
         if (playerMovement != null)
         {
@@ -216,6 +229,7 @@ public class PlayerController : MonoBehaviour
         }
 
         ClearCenterAssist();
+        SetAbductionBeamActive(false);
 
         state = AbductionState.Idle;
     }
@@ -229,6 +243,7 @@ public class PlayerController : MonoBehaviour
 
         targetAnimal = null;
         state = AbductionState.Idle;
+        SetAbductionBeamActive(false);
 
         if (playerMovement != null)
         {
@@ -332,5 +347,51 @@ public class PlayerController : MonoBehaviour
         bool gamepadPressed = Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
 
         return keyboardPressed || gamepadPressed;
+    }
+
+    private void FindAbductionBeamIfNeeded()
+    {
+        if (abductionBeam != null)
+        {
+            return;
+        }
+
+        Transform beamTransform = transform.Find("AbductionBeamCone");
+
+        if (beamTransform != null)
+        {
+            abductionBeam = beamTransform.gameObject;
+        }
+    }
+
+    private void SetAbductionBeamActive(bool isActive)
+    {
+        if (abductionBeam != null && abductionBeam.activeSelf != isActive)
+        {
+            abductionBeam.SetActive(isActive);
+        }
+    }
+
+    private void LoadAbductionBeamMaterialIfNeeded()
+    {
+        if (abductionBeamMaterial == null)
+        {
+            abductionBeamMaterial = Resources.Load<Material>("Materials/AbductionBeamGlow");
+        }
+    }
+
+    private void ApplyAbductionBeamMaterial()
+    {
+        if (abductionBeam == null || abductionBeamMaterial == null)
+        {
+            return;
+        }
+
+        Renderer[] beamRenderers = abductionBeam.GetComponentsInChildren<Renderer>(true);
+
+        foreach (Renderer beamRenderer in beamRenderers)
+        {
+            beamRenderer.sharedMaterial = abductionBeamMaterial;
+        }
     }
 }
