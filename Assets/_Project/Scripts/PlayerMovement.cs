@@ -12,6 +12,14 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Vector3 moveInput;
+    private float controlMultiplier = 1f;
+    private Vector3 centerAssistTarget;
+    private float centerAssistStrength;
+    private float centerAssistSpeed;
+    private bool movementLocked;
+
+    public Vector3 MoveInput => moveInput;
+    public bool HasMoveInput => moveInput.sqrMagnitude > 0.01f;
 
     private void Awake()
     {
@@ -31,7 +39,23 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        Vector3 targetVelocity = moveInput * moveSpeed;
+        if (movementLocked)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            return;
+        }
+
+        Vector3 targetVelocity = moveInput * moveSpeed * controlMultiplier;
+
+        if (centerAssistStrength > 0f)
+        {
+            Vector3 centerOffset = centerAssistTarget - rb.position;
+            centerOffset.y = 0f;
+
+            targetVelocity += centerOffset * centerAssistSpeed * centerAssistStrength;
+        }
+
         Vector3 velocityChange = targetVelocity - rb.linearVelocity;
 
         velocityChange.y = 0f;
@@ -96,5 +120,33 @@ public class PlayerMovement : MonoBehaviour
         }
 
         return Vector2.ClampMagnitude(input, 1f);
+    }
+
+    public void SetControlMultiplier(float multiplier)
+    {
+        controlMultiplier = Mathf.Clamp01(multiplier);
+    }
+
+    public void SetCenterAssist(Vector3 targetPosition, float strength, float speed)
+    {
+        centerAssistTarget = targetPosition;
+        centerAssistStrength = Mathf.Clamp01(strength);
+        centerAssistSpeed = Mathf.Max(0f, speed);
+    }
+
+    public void ClearCenterAssist()
+    {
+        centerAssistStrength = 0f;
+    }
+
+    public void SetMovementLocked(bool isLocked)
+    {
+        movementLocked = isLocked;
+
+        if (movementLocked)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
     }
 }
