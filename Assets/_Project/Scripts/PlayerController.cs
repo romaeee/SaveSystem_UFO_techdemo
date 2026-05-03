@@ -26,6 +26,7 @@ public class PlayerController : MonoBehaviour
     private AnimalController targetAnimal;
     private AbductionState state;
     private bool isCenterTweenActive;
+    private bool isAbductionQueued;
     private float centerAssistStrength;
 
     private void Awake()
@@ -57,12 +58,17 @@ public class PlayerController : MonoBehaviour
                 break;
 
             case AbductionState.Centering:
+                if (WasAbductPressed())
+                {
+                    QueueAbductionAfterCentering();
+                }
+
                 UpdateCenterAssist();
 
                 if (IsTargetValid() && GetHorizontalDistance(targetAnimal.transform.position) <= centeredDistance)
                 {
                     SetAbductionBeamActive(true);
-                    state = AbductionState.ReadyToAbduct;
+                    FinishCentering();
                 }
                 break;
 
@@ -178,6 +184,7 @@ public class PlayerController : MonoBehaviour
 
         state = AbductionState.Centering;
         isCenterTweenActive = true;
+        isAbductionQueued = false;
         centerAssistStrength = 0f;
         UpdateCenterAssist();
         SetAbductionBeamActive(true);
@@ -196,17 +203,19 @@ public class PlayerController : MonoBehaviour
         UpdateCenterAssist();
         SetAbductionBeamActive(IsTargetValid());
 
-        state = IsTargetValid() ? AbductionState.ReadyToAbduct : AbductionState.Idle;
+        FinishCentering();
     }
 
     private void StartAnimalAbduction()
     {
         CancelCentering();
+        isAbductionQueued = false;
         state = AbductionState.Abducting;
         SetAbductionBeamActive(true);
 
         if (playerMovement != null)
         {
+            playerMovement.SetInputLocked(false);
             playerMovement.SetControlMultiplier(1f);
             playerMovement.ClearCenterAssist();
             playerMovement.SetMovementLocked(true);
@@ -230,6 +239,7 @@ public class PlayerController : MonoBehaviour
 
         ClearCenterAssist();
         SetAbductionBeamActive(false);
+        isAbductionQueued = false;
 
         state = AbductionState.Idle;
     }
@@ -243,10 +253,12 @@ public class PlayerController : MonoBehaviour
 
         targetAnimal = null;
         state = AbductionState.Idle;
+        isAbductionQueued = false;
         SetAbductionBeamActive(false);
 
         if (playerMovement != null)
         {
+            playerMovement.SetInputLocked(false);
             playerMovement.SetControlMultiplier(1f);
             playerMovement.ClearCenterAssist();
             playerMovement.SetMovementLocked(false);
@@ -290,12 +302,53 @@ public class PlayerController : MonoBehaviour
 
         float assistStrength = centerAssistStrength;
 
-        if (IsMovingAwayFromAnimal(targetAnimal))
+        if (!isAbductionQueued && IsMovingAwayFromAnimal(targetAnimal))
         {
             assistStrength = 0f;
         }
 
         playerMovement.SetCenterAssist(targetPosition, assistStrength, centerAssistSpeed);
+    }
+
+    private void QueueAbductionAfterCentering()
+    {
+        if (!IsTargetValid())
+        {
+            return;
+        }
+
+        isAbductionQueued = true;
+        centerAssistStrength = 1f;
+        SetAbductionBeamActive(true);
+
+        if (playerMovement != null)
+        {
+            playerMovement.SetInputLocked(true);
+            playerMovement.SetControlMultiplier(1f);
+        }
+    }
+
+    private void FinishCentering()
+    {
+        if (!IsTargetValid())
+        {
+            ResetTarget();
+            return;
+        }
+
+        if (GetHorizontalDistance(targetAnimal.transform.position) > centeredDistance)
+        {
+            state = AbductionState.Centering;
+            return;
+        }
+
+        if (isAbductionQueued)
+        {
+            StartAnimalAbduction();
+            return;
+        }
+
+        state = AbductionState.ReadyToAbduct;
     }
 
     private void ClearCenterAssist()

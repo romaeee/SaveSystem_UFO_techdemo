@@ -17,6 +17,7 @@ public class PlayerMovement : MonoBehaviour
     private float centerAssistStrength;
     private float centerAssistSpeed;
     private bool movementLocked;
+    private bool inputLocked;
 
     public Vector3 MoveInput => moveInput;
     public bool HasMoveInput => moveInput.sqrMagnitude > 0.01f;
@@ -46,7 +47,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        Vector3 targetVelocity = moveInput * moveSpeed * controlMultiplier;
+        Vector3 targetVelocity = inputLocked ? Vector3.zero : moveInput * moveSpeed * controlMultiplier;
 
         if (centerAssistStrength > 0f)
         {
@@ -148,5 +149,10 @@ public class PlayerMovement : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
+    }
+
+    public void SetInputLocked(bool isLocked)
+    {
+        inputLocked = isLocked;
     }
 }
