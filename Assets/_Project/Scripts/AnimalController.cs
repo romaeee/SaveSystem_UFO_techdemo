@@ -3,6 +3,8 @@ using System;
 
 public class AnimalController : MonoBehaviour
 {
+    public static event Action<AnimalController> AnimalDestroyed;
+
     [SerializeField] private float abductDuration = 2f;
     [SerializeField] private float targetYOffset = -0.4f;
     [SerializeField] private float endScale = 0.05f;
@@ -49,6 +51,7 @@ public class AnimalController : MonoBehaviour
         isAbducting = false;
         isAbducted = true;
         onAbducted?.Invoke();
+        AnimalDestroyed?.Invoke(this);
         Destroy(gameObject);
     }
 
