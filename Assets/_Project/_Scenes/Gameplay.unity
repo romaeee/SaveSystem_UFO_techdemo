@@ -10587,6 +10587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animalSpawner: {fileID: 202200844}
   targetAnimalCount: 10
+  targetFrameRate: 61
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

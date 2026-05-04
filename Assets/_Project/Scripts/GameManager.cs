@@ -5,6 +5,7 @@ public class GameManager : MonoBehaviour
 {
     [SerializeField] private SpawnerController animalSpawner;
     [SerializeField] private int targetAnimalCount = 10;
+    [SerializeField, Range(30, 120)] private int targetFrameRate = 60;
 
     private readonly HashSet<AnimalController> animals = new HashSet<AnimalController>();
 
@@ -14,6 +15,8 @@ public class GameManager : MonoBehaviour
         {
             animalSpawner = FindAnyObjectByType<SpawnerController>();
         }
+
+        ApplyFrameRateLimit();
     }
 
     private void OnEnable()
@@ -28,8 +31,20 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        ApplyFrameRateLimit();
         RegisterExistingAnimals();
         FillAnimalPopulation();
+    }
+
+    private void OnValidate()
+    {
+        targetFrameRate = Mathf.Clamp(targetFrameRate, 30, 120);
+    }
+
+    private void ApplyFrameRateLimit()
+    {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = Mathf.Clamp(targetFrameRate, 30, 120);
     }
 
     private void RegisterExistingAnimals()
