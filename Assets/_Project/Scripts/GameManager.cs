@@ -33,7 +33,7 @@ public class GameManager : MonoBehaviour
     {
         ApplyFrameRateLimit();
         RegisterExistingAnimals();
-        FillAnimalPopulation();
+        FillAnimalPopulation(true);
     }
 
     private void OnValidate()
@@ -51,7 +51,7 @@ public class GameManager : MonoBehaviour
     {
         animals.Clear();
 
-        AnimalController[] existingAnimals = FindObjectsByType<AnimalController>(FindObjectsInactive.Exclude);
+        var existingAnimals = AnimalController.ActiveAnimals;
 
         foreach (AnimalController animal in existingAnimals)
         {
@@ -62,7 +62,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void FillAnimalPopulation()
+    private void FillAnimalPopulation(bool ignoreCameraVisibility)
     {
         if (animalSpawner == null)
         {
@@ -75,7 +75,7 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < animalsToSpawn; i++)
         {
-            AnimalController animal = animalSpawner.SpawnAnimal();
+            AnimalController animal = animalSpawner.SpawnAnimal(ignoreCameraVisibility);
 
             if (animal == null)
             {
@@ -89,6 +89,6 @@ public class GameManager : MonoBehaviour
     private void OnAnimalDestroyed(AnimalController animal)
     {
         animals.Remove(animal);
-        FillAnimalPopulation();
+        FillAnimalPopulation(false);
     }
 }

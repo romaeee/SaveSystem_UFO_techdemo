@@ -6,16 +6,18 @@ public class SpawnerController : MonoBehaviour
     [SerializeField] private AnimalController animalPrefab;
     [SerializeField] private Transform spawnPlane;
     [SerializeField] private Camera visibilityCamera;
-    [SerializeField] private Vector2 spawnAreaSize = new Vector2(80f, 80f);
-    [SerializeField] private Vector3 spawnAreaCenter;
+    [SerializeField, Min(0f)] private float spawnDiameter = 50f;
     [SerializeField] private float spawnHeightOffset = 0.5f;
     [SerializeField] private float collisionCheckRadius = 1.2f;
+    [SerializeField] private float minDistanceBetweenAnimals = 5f;
+    [SerializeField] private int candidateBatchSize = 12;
     [SerializeField] private float cameraViewportPadding = 0.08f;
     [SerializeField] private int maxSpawnAttempts = 80;
     [SerializeField] private LayerMask blockingLayers = ~0;
 
     private Collider spawnPlaneCollider;
     private Renderer spawnPlaneRenderer;
+    private readonly Collider[] collisionBuffer = new Collider[16];
 
     private void Awake()
     {
@@ -23,6 +25,11 @@ public class SpawnerController : MonoBehaviour
     }
 
     public AnimalController SpawnAnimal()
+    {
+        return SpawnAnimal(false);
+    }
+
+    public AnimalController SpawnAnimal(bool ignoreCameraVisibility)
     {
         AnimalSO animalData = animalDatabase != null ? animalDatabase.GetRandomAnimal() : null;
         AnimalController selectedPrefab = animalData != null ? animalData.Prefab : animalPrefab;
@@ -35,27 +42,69 @@ public class SpawnerController : MonoBehaviour
 
         FindSceneReferencesIfNeeded();
 
-        for (int i = 0; i < maxSpawnAttempts; i++)
+        if (TryFindBestSpawnPoint(ignoreCameraVisibility, out Vector3 spawnPosition))
         {
-            if (!TryGetSpawnPoint(out Vector3 spawnPosition))
-            {
-                continue;
-            }
+            Quaternion spawnRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            AnimalController animal = Instantiate(selectedPrefab, spawnPosition, spawnRotation);
+            animal.name = animalData != null && !string.IsNullOrWhiteSpace(animalData.AnimalName)
+                ? animalData.AnimalName
+                : selectedPrefab.name;
 
-            if (!IsPointVisibleToCamera(spawnPosition) && !IsPointBlocked(spawnPosition))
-            {
-                Quaternion spawnRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                AnimalController animal = Instantiate(selectedPrefab, spawnPosition, spawnRotation);
-                animal.name = animalData != null && !string.IsNullOrWhiteSpace(animalData.AnimalName)
-                    ? animalData.AnimalName
-                    : selectedPrefab.name;
-
-                return animal;
-            }
+            return animal;
         }
 
         Debug.LogWarning($"{nameof(SpawnerController)} could not find a valid spawn point.", this);
         return null;
+    }
+
+    private bool TryFindBestSpawnPoint(bool ignoreCameraVisibility, out Vector3 bestPosition)
+    {
+        bestPosition = Vector3.zero;
+        float bestScore = float.NegativeInfinity;
+        int attempts = Mathf.Max(1, maxSpawnAttempts);
+        int batchSize = Mathf.Max(1, candidateBatchSize);
+        float minDistanceSqr = minDistanceBetweenAnimals * minDistanceBetweenAnimals;
+
+        for (int i = 0; i < attempts; i++)
+        {
+            for (int candidateIndex = 0; candidateIndex < batchSize; candidateIndex++)
+            {
+                if (!TryGetSpawnPoint(out Vector3 spawnPosition))
+                {
+                    continue;
+                }
+
+                if (!ignoreCameraVisibility && IsPointVisibleToCamera(spawnPosition))
+                {
+                    continue;
+                }
+
+                if (IsPointBlocked(spawnPosition))
+                {
+                    continue;
+                }
+
+                float score = GetAnimalSeparationScore(spawnPosition);
+
+                if (score < minDistanceSqr)
+                {
+                    continue;
+                }
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestPosition = spawnPosition;
+                }
+            }
+
+            if (bestScore > float.NegativeInfinity)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void FindSceneReferencesIfNeeded()
@@ -81,58 +130,46 @@ public class SpawnerController : MonoBehaviour
 
     private bool TryGetSpawnPoint(out Vector3 spawnPosition)
     {
-        Bounds spawnBounds = GetSpawnBounds();
+        float radius = spawnDiameter * 0.5f;
+        Vector2 randomOffset = Random.insideUnitCircle * radius;
 
-        float x = Random.Range(spawnBounds.min.x, spawnBounds.max.x);
-        float z = Random.Range(spawnBounds.min.z, spawnBounds.max.z);
-        float y = spawnBounds.max.y + spawnHeightOffset;
+        float x = transform.position.x + randomOffset.x;
+        float z = transform.position.z + randomOffset.y;
+        float planeRayStartY = GetPlaneRayStartY();
+        float y = planeRayStartY + spawnHeightOffset;
 
         spawnPosition = new Vector3(x, y, z);
 
         if (spawnPlaneCollider != null)
         {
-            Vector3 rayStart = new Vector3(x, spawnBounds.max.y + 50f, z);
+            Vector3 rayStart = new Vector3(x, planeRayStartY + 50f, z);
+            Ray ray = new Ray(rayStart, Vector3.down);
 
-            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 100f, blockingLayers, QueryTriggerInteraction.Ignore))
+            if (spawnPlaneCollider.Raycast(ray, out RaycastHit hit, 100f))
             {
-                if (hit.collider == spawnPlaneCollider)
-                {
-                    spawnPosition = hit.point + Vector3.up * spawnHeightOffset;
-                    return true;
-                }
-
-                return false;
+                spawnPosition = hit.point + Vector3.up * spawnHeightOffset;
+                return true;
             }
+
+            return false;
         }
 
         return true;
     }
 
-    private Bounds GetSpawnBounds()
+    private float GetPlaneRayStartY()
     {
-        if (spawnAreaSize.x > 0f && spawnAreaSize.y > 0f)
-        {
-            Vector3 center = spawnAreaCenter;
-
-            if (center == Vector3.zero && spawnPlane != null)
-            {
-                center = spawnPlane.position;
-            }
-
-            return new Bounds(center, new Vector3(spawnAreaSize.x, 0f, spawnAreaSize.y));
-        }
-
         if (spawnPlaneRenderer != null)
         {
-            return spawnPlaneRenderer.bounds;
+            return spawnPlaneRenderer.bounds.max.y;
         }
 
         if (spawnPlaneCollider != null)
         {
-            return spawnPlaneCollider.bounds;
+            return spawnPlaneCollider.bounds.max.y;
         }
 
-        return new Bounds(transform.position, new Vector3(30f, 0f, 30f));
+        return transform.position.y;
     }
 
     private bool IsPointVisibleToCamera(Vector3 point)
@@ -153,16 +190,19 @@ public class SpawnerController : MonoBehaviour
 
     private bool IsPointBlocked(Vector3 point)
     {
-        Collider[] colliders = Physics.OverlapSphere(
+        int colliderCount = Physics.OverlapSphereNonAlloc(
             point,
             collisionCheckRadius,
+            collisionBuffer,
             blockingLayers,
             QueryTriggerInteraction.Ignore
         );
 
-        foreach (Collider hitCollider in colliders)
+        for (int i = 0; i < colliderCount; i++)
         {
-            if (hitCollider == spawnPlaneCollider)
+            Collider hitCollider = collisionBuffer[i];
+
+            if (IsSpawnSurface(hitCollider))
             {
                 continue;
             }
@@ -176,5 +216,46 @@ public class SpawnerController : MonoBehaviour
         }
 
         return false;
+    }
+
+    private float GetAnimalSeparationScore(Vector3 point)
+    {
+        var animals = AnimalController.ActiveAnimals;
+
+        if (animals.Count == 0)
+        {
+            return float.PositiveInfinity;
+        }
+
+        float nearestDistanceSqr = float.PositiveInfinity;
+
+        foreach (AnimalController animal in animals)
+        {
+            if (animal == null || !animal.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            Vector3 offset = animal.transform.position - point;
+            offset.y = 0f;
+            nearestDistanceSqr = Mathf.Min(nearestDistanceSqr, offset.sqrMagnitude);
+        }
+
+        return nearestDistanceSqr;
+    }
+
+    private bool IsSpawnSurface(Collider hitCollider)
+    {
+        if (hitCollider == null)
+        {
+            return true;
+        }
+
+        if (hitCollider == spawnPlaneCollider)
+        {
+            return true;
+        }
+
+        return hitCollider.transform == spawnPlane || hitCollider.gameObject.name.StartsWith("Plane");
     }
 }

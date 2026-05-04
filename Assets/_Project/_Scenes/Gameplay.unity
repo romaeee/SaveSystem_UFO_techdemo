@@ -1018,7 +1018,7 @@ Transform:
   m_GameObject: {fileID: 202200842}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 4, z: 0}
+  m_LocalPosition: {x: -5.5, y: 1, z: -17.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1040,10 +1040,11 @@ MonoBehaviour:
   animalPrefab: {fileID: 4799711637570911715, guid: caafe3644b19e457eaa4ed640cd865a3, type: 3}
   spawnPlane: {fileID: 721671502}
   visibilityCamera: {fileID: 1608794752}
-  spawnAreaSize: {x: 50, y: 50}
-  spawnAreaCenter: {x: 0, y: 0, z: 0}
+  spawnDiameter: 50
   spawnHeightOffset: 0.5
   collisionCheckRadius: 1.2
+  minDistanceBetweenAnimals: 5
+  candidateBatchSize: 12
   cameraViewportPadding: 0.08
   maxSpawnAttempts: 80
   blockingLayers:
@@ -1834,6 +1835,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2266375719436862512, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
+      propertyPath: m_Constraints
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 4404446768203057296, guid: 28f951fc78ef04559ae91a4fcf2e87dd, type: 3}
       propertyPath: m_Name
       value: Player

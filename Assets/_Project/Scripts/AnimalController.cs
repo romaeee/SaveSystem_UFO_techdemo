@@ -1,9 +1,13 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 public class AnimalController : MonoBehaviour
 {
     public static event Action<AnimalController> AnimalDestroyed;
+    private static readonly List<AnimalController> activeAnimals = new List<AnimalController>();
+
+    public static IReadOnlyList<AnimalController> ActiveAnimals => activeAnimals;
 
     [SerializeField] private float abductDuration = 2f;
     [SerializeField] private float targetYOffset = -0.4f;
@@ -14,6 +18,7 @@ public class AnimalController : MonoBehaviour
     private Collider[] colliders;
     private bool isAbducting;
     private bool isAbducted;
+    private bool isRegistered;
     private Action onAbducted;
 
     public bool CanBeAbducted => !isAbducting && !isAbducted && gameObject.activeInHierarchy;
@@ -21,6 +26,21 @@ public class AnimalController : MonoBehaviour
     private void Awake()
     {
         colliders = GetComponentsInChildren<Collider>();
+    }
+
+    private void OnEnable()
+    {
+        RegisterActiveAnimal();
+    }
+
+    private void OnDisable()
+    {
+        UnregisterActiveAnimal();
+    }
+
+    private void OnDestroy()
+    {
+        UnregisterActiveAnimal();
     }
 
     public void Abduct(Transform ufo, Action onComplete)
@@ -61,5 +81,27 @@ public class AnimalController : MonoBehaviour
         {
             animalCollider.enabled = enabled;
         }
+    }
+
+    private void RegisterActiveAnimal()
+    {
+        if (isRegistered)
+        {
+            return;
+        }
+
+        activeAnimals.Add(this);
+        isRegistered = true;
+    }
+
+    private void UnregisterActiveAnimal()
+    {
+        if (!isRegistered)
+        {
+            return;
+        }
+
+        activeAnimals.Remove(this);
+        isRegistered = false;
     }
 }

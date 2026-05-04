@@ -9,6 +9,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float rotationSpeed = 10f;
     [SerializeField] private float maxTiltAngle = 18f;
     [SerializeField] private Transform visualRoot;
+    [SerializeField] private bool lockHeight = true;
 
     private Rigidbody rb;
     private Vector3 moveInput;
@@ -18,6 +19,7 @@ public class PlayerMovement : MonoBehaviour
     private float centerAssistSpeed;
     private bool movementLocked;
     private bool inputLocked;
+    private float lockedYPosition;
 
     public Vector3 MoveInput => moveInput;
     public bool HasMoveInput => moveInput.sqrMagnitude > 0.01f;
@@ -27,7 +29,8 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
-        rb.constraints = RigidbodyConstraints.FreezeRotation;
+        rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+        lockedYPosition = rb.position.y;
     }
 
     private void Update()
@@ -44,6 +47,7 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
+            KeepLockedHeight();
             return;
         }
 
@@ -63,6 +67,9 @@ public class PlayerMovement : MonoBehaviour
         velocityChange = Vector3.ClampMagnitude(velocityChange, acceleration * Time.fixedDeltaTime);
 
         rb.linearVelocity += velocityChange;
+        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+
+        KeepLockedHeight();
     }
 
     private void LateUpdate()
@@ -154,5 +161,21 @@ public class PlayerMovement : MonoBehaviour
     public void SetInputLocked(bool isLocked)
     {
         inputLocked = isLocked;
+    }
+
+    private void KeepLockedHeight()
+    {
+        if (!lockHeight)
+        {
+            return;
+        }
+
+        Vector3 position = rb.position;
+
+        if (!Mathf.Approximately(position.y, lockedYPosition))
+        {
+            position.y = lockedYPosition;
+            rb.position = position;
+        }
     }
 }

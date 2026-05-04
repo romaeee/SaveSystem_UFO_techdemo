@@ -11,7 +11,6 @@ public class PlayerController : MonoBehaviour
         Abducting
     }
 
-    [SerializeField] private string animalTag = "Animal";
     [SerializeField] private float detectionRadius = 3f;
     [SerializeField] private float centeredDistance = 0.15f;
     [SerializeField] private float minControlMultiplierNearAnimal = 0.35f;
@@ -136,14 +135,12 @@ public class PlayerController : MonoBehaviour
 
     private AnimalController FindNearestAnimal()
     {
-        GameObject[] animals = GameObject.FindGameObjectsWithTag(animalTag);
+        var animals = AnimalController.ActiveAnimals;
         AnimalController nearestAnimal = null;
         float nearestDistanceSqr = detectionRadius * detectionRadius;
 
-        foreach (GameObject animalObject in animals)
+        foreach (AnimalController animal in animals)
         {
-            AnimalController animal = animalObject.GetComponent<AnimalController>();
-
             if (animal == null || !animal.CanBeAbducted)
             {
                 continue;
