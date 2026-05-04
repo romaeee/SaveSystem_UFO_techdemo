@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class SpawnerController : MonoBehaviour
 {
+    [SerializeField] private DatabaseAnimalSO animalDatabase;
     [SerializeField] private AnimalController animalPrefab;
     [SerializeField] private Transform spawnPlane;
     [SerializeField] private Camera visibilityCamera;
@@ -23,9 +24,12 @@ public class SpawnerController : MonoBehaviour
 
     public AnimalController SpawnAnimal()
     {
-        if (animalPrefab == null)
+        AnimalSO animalData = animalDatabase != null ? animalDatabase.GetRandomAnimal() : null;
+        AnimalController selectedPrefab = animalData != null ? animalData.Prefab : animalPrefab;
+
+        if (selectedPrefab == null)
         {
-            Debug.LogWarning($"{nameof(SpawnerController)} needs an animal prefab.", this);
+            Debug.LogWarning($"{nameof(SpawnerController)} needs an animal database or fallback animal prefab.", this);
             return null;
         }
 
@@ -41,8 +45,10 @@ public class SpawnerController : MonoBehaviour
             if (!IsPointVisibleToCamera(spawnPosition) && !IsPointBlocked(spawnPosition))
             {
                 Quaternion spawnRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                AnimalController animal = Instantiate(animalPrefab, spawnPosition, spawnRotation);
-                animal.name = animalPrefab.name;
+                AnimalController animal = Instantiate(selectedPrefab, spawnPosition, spawnRotation);
+                animal.name = animalData != null && !string.IsNullOrWhiteSpace(animalData.AnimalName)
+                    ? animalData.AnimalName
+                    : selectedPrefab.name;
 
                 return animal;
             }
