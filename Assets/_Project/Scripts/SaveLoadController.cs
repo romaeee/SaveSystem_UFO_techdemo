@@ -110,7 +110,9 @@ public class SaveLoadController : MonoBehaviour
 
     public void SaveToFile(string path)
     {
+        SaveData previousSaveData = ReadSaveData(path);
         SaveData saveData = CaptureSaveData();
+        PreserveUnknownAnimalCounters(previousSaveData, saveData);
         string json = JsonUtility.ToJson(saveData, true);
 
         string directory = Path.GetDirectoryName(path);
@@ -131,9 +133,7 @@ public class SaveLoadController : MonoBehaviour
             return false;
         }
 
-        string json = File.ReadAllText(path);
-        SaveData saveData = JsonUtility.FromJson<SaveData>(json);
-        saveData = SaveDataMigrator.Migrate(saveData);
+        SaveData saveData = ReadSaveData(path);
 
         if (saveData == null)
         {
@@ -143,6 +143,18 @@ public class SaveLoadController : MonoBehaviour
 
         ApplySaveData(saveData);
         return true;
+    }
+
+    private SaveData ReadSaveData(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        string json = File.ReadAllText(path);
+        SaveData saveData = JsonUtility.FromJson<SaveData>(json);
+        return SaveDataMigrator.Migrate(saveData);
     }
 
     public SaveData CaptureSaveData()
@@ -166,6 +178,56 @@ public class SaveLoadController : MonoBehaviour
         {
             saveable.RestoreState(saveData);
         }
+    }
+
+    private void PreserveUnknownAnimalCounters(SaveData previousSaveData, SaveData saveData)
+    {
+        if (previousSaveData == null
+            || previousSaveData.animalCounterValues == null
+            || previousSaveData.animalCounterValues.Count == 0)
+        {
+            return;
+        }
+
+        saveData.animalCounterValues ??= new List<AnimalCountSaveData>();
+
+        foreach (AnimalCountSaveData previousCount in previousSaveData.animalCounterValues)
+        {
+            if (previousCount == null || string.IsNullOrWhiteSpace(previousCount.animalType))
+            {
+                continue;
+            }
+
+            if (HasAnimalCounter(saveData, previousCount.animalType))
+            {
+                continue;
+            }
+
+            saveData.animalCounterValues.Add(new AnimalCountSaveData
+            {
+                animalType = previousCount.animalType,
+                count = previousCount.count
+            });
+        }
+    }
+
+    private bool HasAnimalCounter(SaveData saveData, string animalType)
+    {
+        if (saveData.animalCounterValues == null)
+        {
+            return false;
+        }
+
+        foreach (AnimalCountSaveData countData in saveData.animalCounterValues)
+        {
+            if (countData != null
+                && string.Equals(countData.animalType, animalType, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void AddAssignedSaveables(List<ISaveable> saveables)

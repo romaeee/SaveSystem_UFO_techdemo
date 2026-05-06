@@ -79,6 +79,28 @@ public static class SaveDataMigrator
     private static void MigrateFrom3To4(SaveData saveData)
     {
         saveData.animalCounterValues ??= new System.Collections.Generic.List<AnimalCountSaveData>();
+
+        if (saveData.animalCounterValues.Count == 0 && saveData.animalCounts != null)
+        {
+            AddLegacyCounter(saveData, "Cow", saveData.animalCounts.cows);
+            AddLegacyCounter(saveData, "Pig", saveData.animalCounts.pigs);
+            AddLegacyCounter(saveData, "Chicken", saveData.animalCounts.chickens);
+        }
+
         saveData.schemaVersion = 4;
+    }
+
+    private static void AddLegacyCounter(SaveData saveData, string animalType, int count)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        saveData.animalCounterValues.Add(new AnimalCountSaveData
+        {
+            animalType = animalType,
+            count = count
+        });
     }
 }
