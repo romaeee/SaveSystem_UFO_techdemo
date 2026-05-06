@@ -207,10 +207,6 @@ Assets/_Project/
 - Richer slot metadata
 - Save compatibility validation tools for CI
 
-## Screenshots
-
-Add 2-3 images here.
-
 ## License
 
 MIT
