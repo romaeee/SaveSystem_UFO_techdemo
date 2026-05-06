@@ -9,6 +9,7 @@ public class TimerController : MonoBehaviour, ISaveable
 
     private float elapsedTime;
     private bool isRunning;
+    private int displayedTotalSeconds = -1;
 
     public float ElapsedTime => elapsedTime;
     public int SaveOrder => 0;
@@ -35,7 +36,7 @@ public class TimerController : MonoBehaviour, ISaveable
         }
 
         elapsedTime += useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
-        UpdateTimerText();
+        UpdateTimerTextIfNeeded();
     }
 
     public void StartTimer()
@@ -96,6 +97,7 @@ public class TimerController : MonoBehaviour, ISaveable
         }
 
         int totalSeconds = Mathf.FloorToInt(elapsedTime);
+        displayedTotalSeconds = totalSeconds;
         int seconds = totalSeconds % 60;
         int minutes = (totalSeconds / 60) % 60;
         int hours = totalSeconds / 3600;
@@ -103,5 +105,15 @@ public class TimerController : MonoBehaviour, ISaveable
         timerText.text = hours > 0
             ? $"{hours:00}:{minutes:00}:{seconds:00}"
             : $"{minutes:00}:{seconds:00}";
+    }
+
+    private void UpdateTimerTextIfNeeded()
+    {
+        int totalSeconds = Mathf.FloorToInt(elapsedTime);
+
+        if (totalSeconds != displayedTotalSeconds)
+        {
+            UpdateTimerText();
+        }
     }
 }

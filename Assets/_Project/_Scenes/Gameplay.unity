@@ -17576,7 +17576,7 @@ MonoBehaviour:
   onValueChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_IsOn: 1
+  m_IsOn: 0
 --- !u!1001 &1846524894
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20743,6 +20743,7 @@ MonoBehaviour:
   autosaveStatusText: {fileID: 1170326895}
   createAutosaveStatusIfMissing: 1
   autosaveStatusDuration: 2
+  logAutosaves: 0
   autoDiscoverSaveables: 1
   saveHandlers: []
 --- !u!1001 &356142359763913819

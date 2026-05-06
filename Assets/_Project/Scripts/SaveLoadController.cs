@@ -14,6 +14,7 @@ public class SaveLoadController : MonoBehaviour
     [SerializeField] private TMP_Text autosaveStatusText;
     [SerializeField] private bool createAutosaveStatusIfMissing = true;
     [SerializeField, Min(0f)] private float autosaveStatusDuration = 2f;
+    [SerializeField] private bool logAutosaves;
     [SerializeField] private bool autoDiscoverSaveables = true;
     [SerializeField] private MonoBehaviour[] saveHandlers;
 
@@ -22,11 +23,13 @@ public class SaveLoadController : MonoBehaviour
 
     private Coroutine autosaveCoroutine;
     private Coroutine autosaveStatusCoroutine;
+    private readonly List<ISaveable> cachedSaveables = new List<ISaveable>();
 
     private void Awake()
     {
         CreateAutosaveStatusIfNeeded();
         SetAutosaveStatusVisible(false);
+        RefreshSaveables();
     }
 
     private void OnEnable()
@@ -92,6 +95,19 @@ public class SaveLoadController : MonoBehaviour
         }
     }
 
+    public void RefreshSaveables()
+    {
+        cachedSaveables.Clear();
+        AddAssignedSaveables(cachedSaveables);
+
+        if (autoDiscoverSaveables)
+        {
+            AddSceneSaveables(cachedSaveables);
+        }
+
+        cachedSaveables.Sort((first, second) => first.SaveOrder.CompareTo(second.SaveOrder));
+    }
+
     private void SaveToPath(string path)
     {
         SaveData saveData = BuildSaveData();
@@ -129,7 +145,7 @@ public class SaveLoadController : MonoBehaviour
             schemaVersion = SaveDataMigrator.CurrentSchemaVersion
         };
 
-        foreach (ISaveable saveable in GetSaveables())
+        foreach (ISaveable saveable in cachedSaveables)
         {
             saveable.CaptureState(saveData);
         }
@@ -139,25 +155,10 @@ public class SaveLoadController : MonoBehaviour
 
     private void ApplySaveData(SaveData saveData)
     {
-        foreach (ISaveable saveable in GetSaveables())
+        foreach (ISaveable saveable in cachedSaveables)
         {
             saveable.RestoreState(saveData);
         }
-    }
-
-    private List<ISaveable> GetSaveables()
-    {
-        List<ISaveable> saveables = new List<ISaveable>();
-
-        AddAssignedSaveables(saveables);
-
-        if (autoDiscoverSaveables)
-        {
-            AddSceneSaveables(saveables);
-        }
-
-        saveables.Sort((first, second) => first.SaveOrder.CompareTo(second.SaveOrder));
-        return saveables;
     }
 
     private void AddAssignedSaveables(List<ISaveable> saveables)
@@ -215,7 +216,11 @@ public class SaveLoadController : MonoBehaviour
             yield return new WaitForSeconds(autosaveInterval);
             SaveToPath(AutosavePath);
             ShowAutosaveStatus();
-            Debug.Log($"Game autosaved to {AutosavePath}", this);
+
+            if (logAutosaves)
+            {
+                Debug.Log($"Game autosaved to {AutosavePath}", this);
+            }
         }
     }
 
