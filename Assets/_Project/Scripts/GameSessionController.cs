@@ -74,7 +74,11 @@ public class GameSessionController : MonoBehaviour
         if (saveLoadController != null)
         {
             DeleteFileIfExists(saveLoadController.SavePath);
+            DeleteFileIfExists($"{saveLoadController.SavePath}{SaveLoadController.BackupExtension}");
+            DeleteFileIfExists($"{saveLoadController.SavePath}.tmp");
             DeleteFileIfExists(saveLoadController.AutosavePath);
+            DeleteFileIfExists($"{saveLoadController.AutosavePath}{SaveLoadController.BackupExtension}");
+            DeleteFileIfExists($"{saveLoadController.AutosavePath}.tmp");
         }
 
         DeleteDirectoryIfExists(Path.Combine(Application.persistentDataPath, "slots"));

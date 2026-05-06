@@ -9,6 +9,8 @@ using UnityEngine.UI;
 
 public class SaveLoadController : MonoBehaviour
 {
+    public const string BackupExtension = ".bak";
+
     [SerializeField] private string saveFileName = "savegame.json";
     [SerializeField] private string autosaveFileName = "autosave.json";
     [SerializeField, Min(0.1f)] private float autosaveInterval = 10f;
@@ -102,6 +104,14 @@ public class SaveLoadController : MonoBehaviour
             if (await LoadFromFileAsync(SavePath))
             {
                 Debug.Log($"Game loaded from {SavePath}", this);
+                return;
+            }
+
+            Debug.LogWarning("Quick save could not be loaded. Trying autosave fallback.", this);
+
+            if (await LoadFromFileAsync(AutosavePath))
+            {
+                Debug.Log($"Game loaded from autosave fallback: {AutosavePath}", this);
             }
         }
         catch (Exception exception)
@@ -149,54 +159,37 @@ public class SaveLoadController : MonoBehaviour
 
     public void SaveToFile(string path)
     {
-        SaveData previousSaveData = ReadSaveData(path);
+        SaveData previousSaveData = ReadSaveDataWithFallback(path);
         SaveData saveData = CaptureSaveData();
         PreserveUnknownAnimalCounters(previousSaveData, saveData);
         string json = JsonUtility.ToJson(saveData, true);
 
-        string directory = Path.GetDirectoryName(path);
-
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        File.WriteAllText(path, json);
+        WriteSaveJson(path, json);
     }
 
     public async Task SaveToFileAsync(string path)
     {
         SaveData saveData = CaptureSaveData();
-        SaveData previousSaveData = await ReadSaveDataAsync(path);
+        SaveData previousSaveData = await ReadSaveDataWithFallbackAsync(path);
         PreserveUnknownAnimalCounters(previousSaveData, saveData);
         string json = JsonUtility.ToJson(saveData, true);
 
-        await Task.Run(() =>
-        {
-            string directory = Path.GetDirectoryName(path);
-
-            if (!string.IsNullOrEmpty(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
-            File.WriteAllText(path, json);
-        });
+        await Task.Run(() => WriteSaveJson(path, json));
     }
 
     public bool LoadFromFile(string path)
     {
-        if (!File.Exists(path))
+        if (!File.Exists(path) && !File.Exists(GetBackupPath(path)))
         {
             Debug.LogWarning($"Save file not found: {path}", this);
             return false;
         }
 
-        SaveData saveData = ReadSaveData(path);
+        SaveData saveData = ReadSaveDataWithFallback(path);
 
         if (saveData == null)
         {
-            Debug.LogWarning("Save file is empty or invalid.", this);
+            Debug.LogWarning($"Save file and backup are empty or invalid: {path}", this);
             return false;
         }
 
@@ -206,17 +199,17 @@ public class SaveLoadController : MonoBehaviour
 
     public async Task<bool> LoadFromFileAsync(string path)
     {
-        if (!File.Exists(path))
+        if (!File.Exists(path) && !File.Exists(GetBackupPath(path)))
         {
             Debug.LogWarning($"Save file not found: {path}", this);
             return false;
         }
 
-        SaveData saveData = await ReadSaveDataAsync(path);
+        SaveData saveData = await ReadSaveDataWithFallbackAsync(path);
 
         if (saveData == null)
         {
-            Debug.LogWarning("Save file is empty or invalid.", this);
+            Debug.LogWarning($"Save file and backup are empty or invalid: {path}", this);
             return false;
         }
 
@@ -226,26 +219,167 @@ public class SaveLoadController : MonoBehaviour
 
     private SaveData ReadSaveData(string path)
     {
-        if (!File.Exists(path))
+        return TryReadSaveData(path, out SaveData saveData) ? saveData : null;
+    }
+
+    private SaveData ReadSaveDataWithFallback(string path)
+    {
+        if (TryReadSaveData(path, out SaveData saveData))
         {
-            return null;
+            return saveData;
         }
 
-        string json = File.ReadAllText(path);
-        SaveData saveData = JsonUtility.FromJson<SaveData>(json);
-        return SaveDataMigrator.Migrate(saveData);
+        string backupPath = GetBackupPath(path);
+
+        if (TryReadSaveData(backupPath, out SaveData backupSaveData))
+        {
+            RestoreBackupFile(path, backupPath);
+            return backupSaveData;
+        }
+
+        return null;
     }
 
     private async Task<SaveData> ReadSaveDataAsync(string path)
     {
-        if (!File.Exists(path))
+        return await TryReadSaveDataAsync(path);
+    }
+
+    private async Task<SaveData> ReadSaveDataWithFallbackAsync(string path)
+    {
+        SaveData saveData = await TryReadSaveDataAsync(path);
+
+        if (saveData != null)
         {
+            return saveData;
+        }
+
+        string backupPath = GetBackupPath(path);
+        SaveData backupSaveData = await TryReadSaveDataAsync(backupPath);
+
+        if (backupSaveData != null)
+        {
+            RestoreBackupFile(path, backupPath);
+            return backupSaveData;
+        }
+
+        return null;
+    }
+
+    private bool TryReadSaveData(string path, out SaveData saveData)
+    {
+        saveData = null;
+
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            string json = File.ReadAllText(path);
+            saveData = ParseSaveJson(json, path);
+            return saveData != null;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"Failed to read save file {path}: {exception.Message}", this);
+            return false;
+        }
+    }
+
+    private async Task<SaveData> TryReadSaveDataAsync(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            string json = await Task.Run(() => File.ReadAllText(path));
+            return ParseSaveJson(json, path);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"Failed to read save file {path}: {exception.Message}", this);
+            return null;
+        }
+    }
+
+    private SaveData ParseSaveJson(string json, string path)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            Debug.LogWarning($"Save file is empty: {path}", this);
             return null;
         }
 
-        string json = await Task.Run(() => File.ReadAllText(path));
-        SaveData saveData = JsonUtility.FromJson<SaveData>(json);
-        return SaveDataMigrator.Migrate(saveData);
+        try
+        {
+            SaveData saveData = JsonUtility.FromJson<SaveData>(json);
+            saveData = SaveDataMigrator.Migrate(saveData);
+
+            if (saveData == null)
+            {
+                Debug.LogWarning($"Save file is invalid: {path}", this);
+            }
+
+            return saveData;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"Save file JSON is corrupted {path}: {exception.Message}", this);
+            return null;
+        }
+    }
+
+    private void WriteSaveJson(string path, string json)
+    {
+        string directory = Path.GetDirectoryName(path);
+
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        string backupPath = GetBackupPath(path);
+        string tempPath = $"{path}.tmp";
+
+        if (File.Exists(path))
+        {
+            File.Copy(path, backupPath, true);
+        }
+
+        File.WriteAllText(tempPath, json);
+        File.Copy(tempPath, path, true);
+        File.Copy(path, backupPath, true);
+        File.Delete(tempPath);
+    }
+
+    private void RestoreBackupFile(string path, string backupPath)
+    {
+        try
+        {
+            string directory = Path.GetDirectoryName(path);
+
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.Copy(backupPath, path, true);
+            Debug.LogWarning($"Restored corrupted save from backup: {path}", this);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"Save backup loaded but could not restore file {path}: {exception.Message}", this);
+        }
+    }
+
+    private string GetBackupPath(string path)
+    {
+        return $"{path}{BackupExtension}";
     }
 
     public SaveData CaptureSaveData()
