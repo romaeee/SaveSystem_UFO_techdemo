@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: Animal_Pig
   m_EditorClassIdentifier: 
   animalName: Pig
+  icon: {fileID: 21300000, guid: 48f1812680031463bad30080e49587a6, type: 3}
   prefab: {fileID: 4799711637570911715, guid: 257e5b626cb494efa92be8dbdbb3d8fb, type: 3}
   spawnWeight: 2

@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class SaveDataMigrator
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public static SaveData Migrate(SaveData saveData)
     {
@@ -28,6 +28,10 @@ public static class SaveDataMigrator
                     MigrateFrom2To3(saveData);
                     break;
 
+                case 3:
+                    MigrateFrom3To4(saveData);
+                    break;
+
                 default:
                     Debug.LogWarning($"No migration path for save version {saveData.schemaVersion}.");
                     saveData.schemaVersion = CurrentSchemaVersion;
@@ -42,6 +46,7 @@ public static class SaveDataMigrator
     private static void EnsureDefaults(SaveData saveData)
     {
         saveData.animalCounts ??= new AnimalCountsData();
+        saveData.animalCounterValues ??= new System.Collections.Generic.List<AnimalCountSaveData>();
         saveData.player ??= new TransformData();
         saveData.camera ??= new TransformData();
         saveData.animals ??= new System.Collections.Generic.List<AnimalSaveData>();
@@ -69,5 +74,11 @@ public static class SaveDataMigrator
         }
 
         saveData.schemaVersion = 3;
+    }
+
+    private static void MigrateFrom3To4(SaveData saveData)
+    {
+        saveData.animalCounterValues ??= new System.Collections.Generic.List<AnimalCountSaveData>();
+        saveData.schemaVersion = 4;
     }
 }

@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 20b91fc0220441d88c15e64e57704e84, type: 3}
-  m_Name: Animal_Cow
+  m_Name: Animal_Sheep
   m_EditorClassIdentifier: 
-  animalName: Cow
-  icon: {fileID: 21300000, guid: 5fb34e16bb5f041c3be9e39fae215d6f, type: 3}
-  prefab: {fileID: 4799711637570911715, guid: caafe3644b19e457eaa4ed640cd865a3, type: 3}
-  spawnWeight: 1
+  animalName: Sheep
+  icon: {fileID: 21300000, guid: 675eeaaf024c4434ea64643fa5745eb4, type: 3}
+  prefab: {fileID: 4799711637570911715, guid: 8a16f31a2fe604752a91eb97422cf053, type: 3}
+  spawnWeight: 2

@@ -8,6 +8,7 @@ public class SaveData
     public int schemaVersion;
     public float timerElapsedSeconds;
     public AnimalCountsData animalCounts = new AnimalCountsData();
+    public List<AnimalCountSaveData> animalCounterValues = new List<AnimalCountSaveData>();
     public TransformData player = new TransformData();
     public bool hasCamera;
     public TransformData camera = new TransformData();
@@ -20,6 +21,13 @@ public class AnimalCountsData
     public int cows;
     public int pigs;
     public int chickens;
+}
+
+[Serializable]
+public class AnimalCountSaveData
+{
+    public string animalType;
+    public int count;
 }
 
 [Serializable]
