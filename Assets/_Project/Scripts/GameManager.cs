@@ -113,7 +113,9 @@ public class GameManager : MonoBehaviour, ISaveable
             saveData.animals.Add(new AnimalSaveData
             {
                 animalType = GetAnimalType(animal),
-                transform = new TransformData(animal.transform)
+                transform = new TransformData(animal.transform),
+                localScale = animal.transform.localScale,
+                isAbducting = animal.IsAbducting
             });
         }
     }
@@ -140,11 +142,20 @@ public class GameManager : MonoBehaviour, ISaveable
                 continue;
             }
 
-            animalSpawner.SpawnAnimalByName(
+            AnimalController animal = animalSpawner.SpawnAnimalByName(
                 animalData.animalType,
                 animalData.transform.position,
                 animalData.transform.Rotation
             );
+
+            if (animal != null)
+            {
+                Vector3 savedScale = animalData.localScale.sqrMagnitude > 0.001f
+                    ? animalData.localScale
+                    : Vector3.one;
+
+                animal.RestoreSaveState(savedScale, animalData.isAbducting);
+            }
         }
     }
 

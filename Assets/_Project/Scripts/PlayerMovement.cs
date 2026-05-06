@@ -166,10 +166,12 @@ public class PlayerMovement : MonoBehaviour, ISaveable
 
     public void Teleport(Vector3 position)
     {
+        transform.position = position;
         rb.position = position;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         lockedYPosition = position.y;
+        Physics.SyncTransforms();
     }
 
     public void CaptureState(SaveData saveData)
@@ -184,7 +186,7 @@ public class PlayerMovement : MonoBehaviour, ISaveable
             return;
         }
 
-        transform.rotation = saveData.player.Rotation;
+        transform.SetPositionAndRotation(saveData.player.position, saveData.player.Rotation);
         Teleport(saveData.player.position);
     }
 

@@ -27,6 +27,8 @@ public class AnimalSaveData
 {
     public string animalType;
     public TransformData transform = new TransformData();
+    public Vector3 localScale = Vector3.one;
+    public bool isAbducting;
 }
 
 [Serializable]

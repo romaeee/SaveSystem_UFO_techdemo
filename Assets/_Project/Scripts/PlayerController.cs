@@ -1,7 +1,8 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, ISaveable
 {
     private enum AbductionState
     {
@@ -27,6 +28,9 @@ public class PlayerController : MonoBehaviour
     private bool isCenterTweenActive;
     private bool isAbductionQueued;
     private float centerAssistStrength;
+    private Coroutine resumeAbductionCoroutine;
+
+    public int SaveOrder => 40;
 
     private void Awake()
     {
@@ -443,5 +447,78 @@ public class PlayerController : MonoBehaviour
         {
             beamRenderer.sharedMaterial = abductionBeamMaterial;
         }
+    }
+
+    public void CaptureState(SaveData saveData)
+    {
+    }
+
+    public void RestoreState(SaveData saveData)
+    {
+        if (resumeAbductionCoroutine != null)
+        {
+            StopCoroutine(resumeAbductionCoroutine);
+            resumeAbductionCoroutine = null;
+        }
+
+        if (isCenterTweenActive)
+        {
+            LeanTween.cancel(gameObject);
+            isCenterTweenActive = false;
+        }
+
+        isAbductionQueued = false;
+        centerAssistStrength = 0f;
+
+        targetAnimal = FindAbductingAnimal();
+
+        if (targetAnimal == null)
+        {
+            ResetTarget();
+            return;
+        }
+
+        state = AbductionState.Abducting;
+        SetAbductionBeamActive(true);
+
+        if (playerMovement != null)
+        {
+            playerMovement.SetInputLocked(false);
+            playerMovement.SetControlMultiplier(1f);
+            playerMovement.ClearCenterAssist();
+            playerMovement.SetMovementLocked(true);
+        }
+
+        resumeAbductionCoroutine = StartCoroutine(ResumeAbductionAfterLoad());
+    }
+
+    private IEnumerator ResumeAbductionAfterLoad()
+    {
+        yield return null;
+        Physics.SyncTransforms();
+
+        if (targetAnimal != null && targetAnimal.IsAbducting)
+        {
+            targetAnimal.ResumeAbduction(transform, OnAnimalAbducted);
+        }
+        else
+        {
+            ResetTarget();
+        }
+
+        resumeAbductionCoroutine = null;
+    }
+
+    private AnimalController FindAbductingAnimal()
+    {
+        foreach (AnimalController animal in AnimalController.ActiveAnimals)
+        {
+            if (animal != null && animal.IsAbducting)
+            {
+                return animal;
+            }
+        }
+
+        return null;
     }
 }

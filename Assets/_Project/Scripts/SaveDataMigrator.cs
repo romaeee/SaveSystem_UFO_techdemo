@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class SaveDataMigrator
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public static SaveData Migrate(SaveData saveData)
     {
@@ -22,6 +22,10 @@ public static class SaveDataMigrator
             {
                 case 1:
                     MigrateFrom1To2(saveData);
+                    break;
+
+                case 2:
+                    MigrateFrom2To3(saveData);
                     break;
 
                 default:
@@ -48,5 +52,22 @@ public static class SaveDataMigrator
         saveData.hasCamera = false;
         saveData.camera ??= new TransformData();
         saveData.schemaVersion = 2;
+    }
+
+    private static void MigrateFrom2To3(SaveData saveData)
+    {
+        if (saveData.animals != null)
+        {
+            foreach (AnimalSaveData animal in saveData.animals)
+            {
+                if (animal != null)
+                {
+                    animal.localScale = Vector3.one;
+                    animal.isAbducting = false;
+                }
+            }
+        }
+
+        saveData.schemaVersion = 3;
     }
 }

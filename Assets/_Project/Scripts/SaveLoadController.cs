@@ -63,13 +63,13 @@ public class SaveLoadController : MonoBehaviour
 
     public void SaveGame()
     {
-        SaveToPath(SavePath);
+        SaveToFile(SavePath);
         Debug.Log($"Game saved to {SavePath}", this);
     }
 
     public void LoadGame()
     {
-        if (LoadFromPath(SavePath))
+        if (LoadFromFile(SavePath))
         {
             Debug.Log($"Game loaded from {SavePath}", this);
         }
@@ -77,7 +77,7 @@ public class SaveLoadController : MonoBehaviour
 
     public void LoadAutosave()
     {
-        if (LoadFromPath(AutosavePath))
+        if (LoadFromFile(AutosavePath))
         {
             Debug.Log($"Autosave loaded from {AutosavePath}", this);
         }
@@ -108,15 +108,22 @@ public class SaveLoadController : MonoBehaviour
         cachedSaveables.Sort((first, second) => first.SaveOrder.CompareTo(second.SaveOrder));
     }
 
-    private void SaveToPath(string path)
+    public void SaveToFile(string path)
     {
-        SaveData saveData = BuildSaveData();
+        SaveData saveData = CaptureSaveData();
         string json = JsonUtility.ToJson(saveData, true);
+
+        string directory = Path.GetDirectoryName(path);
+
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
 
         File.WriteAllText(path, json);
     }
 
-    private bool LoadFromPath(string path)
+    public bool LoadFromFile(string path)
     {
         if (!File.Exists(path))
         {
@@ -138,7 +145,7 @@ public class SaveLoadController : MonoBehaviour
         return true;
     }
 
-    private SaveData BuildSaveData()
+    public SaveData CaptureSaveData()
     {
         SaveData saveData = new SaveData
         {
@@ -214,7 +221,7 @@ public class SaveLoadController : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(autosaveInterval);
-            SaveToPath(AutosavePath);
+            SaveToFile(AutosavePath);
             ShowAutosaveStatus();
 
             if (logAutosaves)
