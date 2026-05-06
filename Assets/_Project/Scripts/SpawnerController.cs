@@ -49,6 +49,7 @@ public class SpawnerController : MonoBehaviour
             animal.name = animalData != null && !string.IsNullOrWhiteSpace(animalData.AnimalName)
                 ? animalData.AnimalName
                 : selectedPrefab.name;
+            animal.Initialize(animalData);
 
             return animal;
         }

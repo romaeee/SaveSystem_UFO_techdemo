@@ -3,7 +3,22 @@ guid: d67f9f585929e4e4bbff9d13ea746904
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass
+    second: {fileID: 2100000, guid: e038ba83f40594f52aa7032f055fb32a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Neon
+    second: {fileID: 2100000, guid: 35fd750ed350941e7bc908aa51627cfc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: PrimaryColor
+    second: {fileID: 2100000, guid: bfd1bb3e62c4b4400845163f59a33543, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

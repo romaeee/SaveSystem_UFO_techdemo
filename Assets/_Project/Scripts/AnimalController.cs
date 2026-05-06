@@ -21,6 +21,7 @@ public class AnimalController : MonoBehaviour
     private bool isRegistered;
     private Action onAbducted;
 
+    public AnimalSO AnimalData { get; private set; }
     public bool CanBeAbducted => !isAbducting && !isAbducted && gameObject.activeInHierarchy;
 
     private void Awake()
@@ -64,6 +65,11 @@ public class AnimalController : MonoBehaviour
         LeanTween.scale(gameObject, Vector3.one * endScale, abductDuration)
             .setEase(scaleEase)
             .setOnComplete(CompleteAbduction);
+    }
+
+    public void Initialize(AnimalSO animalData)
+    {
+        AnimalData = animalData;
     }
 
     private void CompleteAbduction()
