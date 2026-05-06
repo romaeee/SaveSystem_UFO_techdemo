@@ -46,4 +46,28 @@ public class DatabaseAnimalSO : ScriptableObject
 
         return null;
     }
+
+    public AnimalSO GetAnimalByName(string animalName)
+    {
+        if (string.IsNullOrWhiteSpace(animalName))
+        {
+            return null;
+        }
+
+        foreach (AnimalSO animal in animals)
+        {
+            if (animal == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(animal.AnimalName, animalName, System.StringComparison.OrdinalIgnoreCase)
+                || string.Equals(animal.name, animalName, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return animal;
+            }
+        }
+
+        return null;
+    }
 }

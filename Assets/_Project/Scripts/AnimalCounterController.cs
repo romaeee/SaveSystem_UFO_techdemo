@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-public class AnimalCounterController : MonoBehaviour
+public class AnimalCounterController : MonoBehaviour, ISaveable
 {
     private const string CowName = "Cow";
     private const string PigName = "Pig";
@@ -14,6 +14,11 @@ public class AnimalCounterController : MonoBehaviour
     private int cowCount;
     private int pigCount;
     private int chickenCount;
+
+    public int CowCount => cowCount;
+    public int PigCount => pigCount;
+    public int ChickenCount => chickenCount;
+    public int SaveOrder => 10;
 
     private void Awake()
     {
@@ -33,10 +38,37 @@ public class AnimalCounterController : MonoBehaviour
 
     public void ResetCounters()
     {
-        cowCount = 0;
-        pigCount = 0;
-        chickenCount = 0;
+        SetCounters(0, 0, 0);
+    }
+
+    public void SetCounters(int cows, int pigs, int chickens)
+    {
+        cowCount = Mathf.Max(0, cows);
+        pigCount = Mathf.Max(0, pigs);
+        chickenCount = Mathf.Max(0, chickens);
         UpdateAllCounters();
+    }
+
+    public void CaptureState(SaveData saveData)
+    {
+        saveData.animalCounts.cows = cowCount;
+        saveData.animalCounts.pigs = pigCount;
+        saveData.animalCounts.chickens = chickenCount;
+    }
+
+    public void RestoreState(SaveData saveData)
+    {
+        if (saveData.animalCounts == null)
+        {
+            ResetCounters();
+            return;
+        }
+
+        SetCounters(
+            saveData.animalCounts.cows,
+            saveData.animalCounts.pigs,
+            saveData.animalCounts.chickens
+        );
     }
 
     private void OnAnimalDestroyed(AnimalController animal)

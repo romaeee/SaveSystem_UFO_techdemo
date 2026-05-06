@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : MonoBehaviour, ISaveable
 {
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float acceleration = 12f;
@@ -23,6 +23,7 @@ public class PlayerMovement : MonoBehaviour
 
     public Vector3 MoveInput => moveInput;
     public bool HasMoveInput => moveInput.sqrMagnitude > 0.01f;
+    public int SaveOrder => 20;
 
     private void Awake()
     {
@@ -161,6 +162,30 @@ public class PlayerMovement : MonoBehaviour
     public void SetInputLocked(bool isLocked)
     {
         inputLocked = isLocked;
+    }
+
+    public void Teleport(Vector3 position)
+    {
+        rb.position = position;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        lockedYPosition = position.y;
+    }
+
+    public void CaptureState(SaveData saveData)
+    {
+        saveData.player = new TransformData(transform);
+    }
+
+    public void RestoreState(SaveData saveData)
+    {
+        if (saveData.player == null)
+        {
+            return;
+        }
+
+        transform.rotation = saveData.player.Rotation;
+        Teleport(saveData.player.position);
     }
 
     private void KeepLockedHeight()

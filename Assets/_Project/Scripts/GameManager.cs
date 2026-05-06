@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
+public class GameManager : MonoBehaviour, ISaveable
 {
     [SerializeField] private SpawnerController animalSpawner;
     [SerializeField] private int targetAnimalCount = 10;
     [SerializeField, Range(30, 120)] private int targetFrameRate = 60;
 
     private readonly HashSet<AnimalController> animals = new HashSet<AnimalController>();
+
+    public int SaveOrder => 30;
 
     private void Awake()
     {
@@ -90,5 +92,85 @@ public class GameManager : MonoBehaviour
     {
         animals.Remove(animal);
         FillAnimalPopulation(false);
+    }
+
+    public void RebuildAnimalList()
+    {
+        RegisterExistingAnimals();
+    }
+
+    public void CaptureState(SaveData saveData)
+    {
+        saveData.animals.Clear();
+
+        foreach (AnimalController animal in AnimalController.ActiveAnimals)
+        {
+            if (animal == null || !animal.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            saveData.animals.Add(new AnimalSaveData
+            {
+                animalType = GetAnimalType(animal),
+                transform = new TransformData(animal.transform)
+            });
+        }
+    }
+
+    public void RestoreState(SaveData saveData)
+    {
+        RestoreAnimals(saveData.animals);
+        RegisterExistingAnimals();
+    }
+
+    private void RestoreAnimals(List<AnimalSaveData> savedAnimals)
+    {
+        ClearSceneAnimals();
+
+        if (animalSpawner == null || savedAnimals == null)
+        {
+            return;
+        }
+
+        foreach (AnimalSaveData animalData in savedAnimals)
+        {
+            if (animalData == null || animalData.transform == null)
+            {
+                continue;
+            }
+
+            animalSpawner.SpawnAnimalByName(
+                animalData.animalType,
+                animalData.transform.position,
+                animalData.transform.Rotation
+            );
+        }
+    }
+
+    private void ClearSceneAnimals()
+    {
+        List<AnimalController> activeAnimals = new List<AnimalController>(AnimalController.ActiveAnimals);
+
+        foreach (AnimalController animal in activeAnimals)
+        {
+            if (animal == null)
+            {
+                continue;
+            }
+
+            animal.gameObject.SetActive(false);
+            Destroy(animal.gameObject);
+        }
+    }
+
+    private string GetAnimalType(AnimalController animal)
+    {
+        if (animal.AnimalData != null && !string.IsNullOrWhiteSpace(animal.AnimalData.AnimalName))
+        {
+            return animal.AnimalData.AnimalName;
+        }
+
+        return animal.gameObject.name.Replace("(Clone)", string.Empty).Trim();
     }
 }

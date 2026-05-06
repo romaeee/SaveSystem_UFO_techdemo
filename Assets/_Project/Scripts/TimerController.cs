@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-public class TimerController : MonoBehaviour
+public class TimerController : MonoBehaviour, ISaveable
 {
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private bool startOnEnable = true;
@@ -11,6 +11,7 @@ public class TimerController : MonoBehaviour
     private bool isRunning;
 
     public float ElapsedTime => elapsedTime;
+    public int SaveOrder => 0;
 
     private void Awake()
     {
@@ -49,14 +50,29 @@ public class TimerController : MonoBehaviour
 
     public void ResetTimer()
     {
-        elapsedTime = 0f;
-        UpdateTimerText();
+        SetElapsedTime(0f);
     }
 
     public void RestartTimer()
     {
         ResetTimer();
         StartTimer();
+    }
+
+    public void SetElapsedTime(float value)
+    {
+        elapsedTime = Mathf.Max(0f, value);
+        UpdateTimerText();
+    }
+
+    public void CaptureState(SaveData saveData)
+    {
+        saveData.timerElapsedSeconds = elapsedTime;
+    }
+
+    public void RestoreState(SaveData saveData)
+    {
+        SetElapsedTime(saveData.timerElapsedSeconds);
     }
 
     private void FindTimerTextIfNeeded()

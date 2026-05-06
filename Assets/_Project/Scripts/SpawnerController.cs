@@ -19,6 +19,8 @@ public class SpawnerController : MonoBehaviour
     private Renderer spawnPlaneRenderer;
     private readonly Collider[] collisionBuffer = new Collider[16];
 
+    public DatabaseAnimalSO AnimalDatabase => animalDatabase;
+
     private void Awake()
     {
         FindSceneReferencesIfNeeded();
@@ -32,6 +34,27 @@ public class SpawnerController : MonoBehaviour
     public AnimalController SpawnAnimal(bool ignoreCameraVisibility)
     {
         AnimalSO animalData = animalDatabase != null ? animalDatabase.GetRandomAnimal() : null;
+
+        FindSceneReferencesIfNeeded();
+
+        if (TryFindBestSpawnPoint(ignoreCameraVisibility, out Vector3 spawnPosition))
+        {
+            Quaternion spawnRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            return SpawnAnimalAt(animalData, spawnPosition, spawnRotation);
+        }
+
+        Debug.LogWarning($"{nameof(SpawnerController)} could not find a valid spawn point.", this);
+        return null;
+    }
+
+    public AnimalController SpawnAnimalByName(string animalName, Vector3 position, Quaternion rotation)
+    {
+        AnimalSO animalData = animalDatabase != null ? animalDatabase.GetAnimalByName(animalName) : null;
+        return SpawnAnimalAt(animalData, position, rotation);
+    }
+
+    private AnimalController SpawnAnimalAt(AnimalSO animalData, Vector3 position, Quaternion rotation)
+    {
         AnimalController selectedPrefab = animalData != null ? animalData.Prefab : animalPrefab;
 
         if (selectedPrefab == null)
@@ -40,22 +63,13 @@ public class SpawnerController : MonoBehaviour
             return null;
         }
 
-        FindSceneReferencesIfNeeded();
+        AnimalController animal = Instantiate(selectedPrefab, position, rotation);
+        animal.name = animalData != null && !string.IsNullOrWhiteSpace(animalData.AnimalName)
+            ? animalData.AnimalName
+            : selectedPrefab.name;
+        animal.Initialize(animalData);
 
-        if (TryFindBestSpawnPoint(ignoreCameraVisibility, out Vector3 spawnPosition))
-        {
-            Quaternion spawnRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-            AnimalController animal = Instantiate(selectedPrefab, spawnPosition, spawnRotation);
-            animal.name = animalData != null && !string.IsNullOrWhiteSpace(animalData.AnimalName)
-                ? animalData.AnimalName
-                : selectedPrefab.name;
-            animal.Initialize(animalData);
-
-            return animal;
-        }
-
-        Debug.LogWarning($"{nameof(SpawnerController)} could not find a valid spawn point.", this);
-        return null;
+        return animal;
     }
 
     private bool TryFindBestSpawnPoint(bool ignoreCameraVisibility, out Vector3 bestPosition)

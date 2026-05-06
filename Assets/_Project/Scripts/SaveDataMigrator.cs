@@ -1,0 +1,52 @@
+using UnityEngine;
+
+public static class SaveDataMigrator
+{
+    public const int CurrentSchemaVersion = 2;
+
+    public static SaveData Migrate(SaveData saveData)
+    {
+        if (saveData == null)
+        {
+            return null;
+        }
+
+        if (saveData.schemaVersion <= 0)
+        {
+            saveData.schemaVersion = 1;
+        }
+
+        while (saveData.schemaVersion < CurrentSchemaVersion)
+        {
+            switch (saveData.schemaVersion)
+            {
+                case 1:
+                    MigrateFrom1To2(saveData);
+                    break;
+
+                default:
+                    Debug.LogWarning($"No migration path for save version {saveData.schemaVersion}.");
+                    saveData.schemaVersion = CurrentSchemaVersion;
+                    break;
+            }
+        }
+
+        EnsureDefaults(saveData);
+        return saveData;
+    }
+
+    private static void EnsureDefaults(SaveData saveData)
+    {
+        saveData.animalCounts ??= new AnimalCountsData();
+        saveData.player ??= new TransformData();
+        saveData.camera ??= new TransformData();
+        saveData.animals ??= new System.Collections.Generic.List<AnimalSaveData>();
+    }
+
+    private static void MigrateFrom1To2(SaveData saveData)
+    {
+        saveData.hasCamera = false;
+        saveData.camera ??= new TransformData();
+        saveData.schemaVersion = 2;
+    }
+}

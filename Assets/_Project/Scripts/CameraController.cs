@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class CameraController : MonoBehaviour
+public class CameraController : MonoBehaviour, ISaveable
 {
     [SerializeField] private string playerTag = "Player";
     [SerializeField] private Vector3 offset = new Vector3(0f, 12f, -6f);
@@ -9,6 +9,8 @@ public class CameraController : MonoBehaviour
 
     private Transform player;
     private Vector3 followVelocity;
+
+    public int SaveOrder => 25;
 
     private void Start()
     {
@@ -50,5 +52,23 @@ public class CameraController : MonoBehaviour
         {
             player = playerObject.transform;
         }
+    }
+
+    public void CaptureState(SaveData saveData)
+    {
+        saveData.hasCamera = true;
+        saveData.camera = new TransformData(transform);
+    }
+
+    public void RestoreState(SaveData saveData)
+    {
+        if (!saveData.hasCamera || saveData.camera == null)
+        {
+            return;
+        }
+
+        followVelocity = Vector3.zero;
+        transform.SetPositionAndRotation(saveData.camera.position, saveData.camera.Rotation);
+        FindPlayer();
     }
 }
