@@ -207,6 +207,12 @@ public class SaveSlotsPanelController : MonoBehaviour
         DeselectSlot();
     }
 
+    public void RefreshPanelData()
+    {
+        RefreshSlots();
+        DeselectSlot();
+    }
+
     private void BuildSlots()
     {
         if (slotPrefab == null || slotsContainer == null)
