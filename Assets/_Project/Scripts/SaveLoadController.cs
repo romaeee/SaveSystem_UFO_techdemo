@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.IO;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,6 +25,7 @@ public class SaveLoadController : MonoBehaviour
 
     private Coroutine autosaveCoroutine;
     private Coroutine autosaveStatusCoroutine;
+    private bool isQuickSaveLoadBusy;
     private readonly List<ISaveable> cachedSaveables = new List<ISaveable>();
 
     private void Awake()
@@ -61,17 +64,53 @@ public class SaveLoadController : MonoBehaviour
         LoadGame();
     }
 
-    public void SaveGame()
+    public async void SaveGame()
     {
-        SaveToFile(SavePath);
-        Debug.Log($"Game saved to {SavePath}", this);
+        if (isQuickSaveLoadBusy)
+        {
+            return;
+        }
+
+        isQuickSaveLoadBusy = true;
+
+        try
+        {
+            await SaveToFileAsync(SavePath);
+            Debug.Log($"Game saved to {SavePath}", this);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"Failed to save game to {SavePath}: {exception.Message}", this);
+        }
+        finally
+        {
+            isQuickSaveLoadBusy = false;
+        }
     }
 
-    public void LoadGame()
+    public async void LoadGame()
     {
-        if (LoadFromFile(SavePath))
+        if (isQuickSaveLoadBusy)
         {
-            Debug.Log($"Game loaded from {SavePath}", this);
+            return;
+        }
+
+        isQuickSaveLoadBusy = true;
+
+        try
+        {
+            if (await LoadFromFileAsync(SavePath))
+            {
+                Debug.Log($"Game loaded from {SavePath}", this);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"Failed to load game from {SavePath}: {exception.Message}", this);
+        }
+        finally
+        {
+            isQuickSaveLoadBusy = false;
         }
     }
 
@@ -125,6 +164,26 @@ public class SaveLoadController : MonoBehaviour
         File.WriteAllText(path, json);
     }
 
+    public async Task SaveToFileAsync(string path)
+    {
+        SaveData saveData = CaptureSaveData();
+        SaveData previousSaveData = await ReadSaveDataAsync(path);
+        PreserveUnknownAnimalCounters(previousSaveData, saveData);
+        string json = JsonUtility.ToJson(saveData, true);
+
+        await Task.Run(() =>
+        {
+            string directory = Path.GetDirectoryName(path);
+
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(path, json);
+        });
+    }
+
     public bool LoadFromFile(string path)
     {
         if (!File.Exists(path))
@@ -145,6 +204,26 @@ public class SaveLoadController : MonoBehaviour
         return true;
     }
 
+    public async Task<bool> LoadFromFileAsync(string path)
+    {
+        if (!File.Exists(path))
+        {
+            Debug.LogWarning($"Save file not found: {path}", this);
+            return false;
+        }
+
+        SaveData saveData = await ReadSaveDataAsync(path);
+
+        if (saveData == null)
+        {
+            Debug.LogWarning("Save file is empty or invalid.", this);
+            return false;
+        }
+
+        ApplySaveData(saveData);
+        return true;
+    }
+
     private SaveData ReadSaveData(string path)
     {
         if (!File.Exists(path))
@@ -153,6 +232,18 @@ public class SaveLoadController : MonoBehaviour
         }
 
         string json = File.ReadAllText(path);
+        SaveData saveData = JsonUtility.FromJson<SaveData>(json);
+        return SaveDataMigrator.Migrate(saveData);
+    }
+
+    private async Task<SaveData> ReadSaveDataAsync(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        string json = await Task.Run(() => File.ReadAllText(path));
         SaveData saveData = JsonUtility.FromJson<SaveData>(json);
         return SaveDataMigrator.Migrate(saveData);
     }

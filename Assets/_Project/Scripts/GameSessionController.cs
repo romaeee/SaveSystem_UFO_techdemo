@@ -106,7 +106,7 @@ public class GameSessionController : MonoBehaviour
             return;
         }
 
-        Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Include);
 
         foreach (Button button in buttons)
         {
