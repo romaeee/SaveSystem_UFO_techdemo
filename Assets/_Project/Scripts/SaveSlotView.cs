@@ -8,8 +8,11 @@ public class SaveSlotView : MonoBehaviour
     [SerializeField] private TMP_Text timeText;
     [SerializeField] private Image screenshotImage;
     [SerializeField] private Image selectionImage;
+    [SerializeField] private Color normalColor = new Color(0.72f, 0.72f, 0.72f, 1f);
+    [SerializeField] private Color selectedColor = new Color(0.35f, 0.75f, 1f, 1f);
 
     private Button button;
+    private Image backgroundImage;
     private int slotIndex;
     private SaveSlotsPanelController owner;
     private Sprite screenshotSprite;
@@ -22,11 +25,15 @@ public class SaveSlotView : MonoBehaviour
         slotIndex = index;
 
         FindReferencesIfNeeded();
+        EnsureBackgroundImage();
 
         if (button == null)
         {
             button = gameObject.AddComponent<Button>();
         }
+
+        button.transition = Selectable.Transition.None;
+        button.targetGraphic = backgroundImage;
 
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(Select);
@@ -69,9 +76,7 @@ public class SaveSlotView : MonoBehaviour
 
         if (selectionImage != null)
         {
-            selectionImage.color = isSelected
-                ? new Color(0.35f, 0.75f, 1f, 1f)
-                : Color.white;
+            selectionImage.color = isSelected ? selectedColor : normalColor;
         }
     }
 
@@ -83,6 +88,7 @@ public class SaveSlotView : MonoBehaviour
     private void FindReferencesIfNeeded()
     {
         button ??= GetComponent<Button>();
+        backgroundImage ??= GetComponent<Image>();
 
         TMP_Text[] texts = GetComponentsInChildren<TMP_Text>(true);
 
@@ -120,6 +126,22 @@ public class SaveSlotView : MonoBehaviour
             }
         }
 
-        selectionImage ??= screenshotImage;
+        if (selectionImage == null)
+        {
+            selectionImage = backgroundImage;
+        }
+    }
+
+    private void EnsureBackgroundImage()
+    {
+        if (backgroundImage == null)
+        {
+            backgroundImage = gameObject.AddComponent<Image>();
+            backgroundImage.sprite = null;
+            backgroundImage.type = Image.Type.Simple;
+        }
+
+        backgroundImage.raycastTarget = true;
+        selectionImage = backgroundImage;
     }
 }

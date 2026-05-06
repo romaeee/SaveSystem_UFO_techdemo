@@ -87,6 +87,7 @@ public class SaveSlotsPanelController : MonoBehaviour
     public void OpenPanel()
     {
         RefreshSlots();
+        DeselectSlot();
 
         if (!isOpen)
         {
@@ -133,6 +134,17 @@ public class SaveSlotsPanelController : MonoBehaviour
         UpdateButtons();
     }
 
+    public void DeselectSlot()
+    {
+        if (selectedSlot != null)
+        {
+            selectedSlot.SetSelected(false);
+            selectedSlot = null;
+        }
+
+        UpdateButtons();
+    }
+
     public void SaveSelectedSlot()
     {
         if (selectedSlot == null || saveLoadController == null)
@@ -153,7 +165,7 @@ public class SaveSlotsPanelController : MonoBehaviour
         }
 
         RefreshSlots();
-        SelectSlot(slots[slotIndex]);
+        DeselectSlot();
     }
 
     public void LoadSelectedSlot()
@@ -192,7 +204,7 @@ public class SaveSlotsPanelController : MonoBehaviour
         }
 
         RefreshSlots();
-        SelectSlot(selectedSlot);
+        DeselectSlot();
     }
 
     private void BuildSlots()
@@ -221,11 +233,6 @@ public class SaveSlotsPanelController : MonoBehaviour
 
             slotView.Initialize(this, i);
             slots.Add(slotView);
-        }
-
-        if (slots.Count > 0)
-        {
-            SelectSlot(slots[0]);
         }
     }
 
